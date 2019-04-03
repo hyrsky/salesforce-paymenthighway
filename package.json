@@ -1,0 +1,44 @@
+{
+  "name": "paymenthighway-api",
+  "version": "1.0.0",
+  "description": "Salesforce paymenthighway API",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "commit": "git-cz"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hyrsky/salesforce-paymenthighway.git"
+  },
+  "author": "Santeri Hurnanen <santeri@oikeuttaelaimille.fi>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hyrsky/salesforce-paymenthighway/issues"
+  },
+  "homepage": "https://github.com/hyrsky/salesforce-paymenthighway#readme",
+  "devDependencies": {
+    "@commitlint/cli": "^7.5.2",
+    "@commitlint/config-conventional": "^7.5.0",
+    "commitizen": "^3.0.7",
+    "cz-conventional-changelog": "^2.1.0",
+    "husky": "^1.3.1",
+    "semantic-release": "^15.13.3"
+  },
+  "dependencies": {},
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
+  },
+  "config": {
+    "commitizen": {
+      "path": "node_modules/cz-conventional-changelog"
+    }
+  }
+}
