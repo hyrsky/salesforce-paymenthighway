@@ -27,7 +27,7 @@ fi
 echo "$VERSION"
 echo "$PACKAGE"
 
-PACKAGE_VERSION = "$(echo $PACKAGE | jq -r '.result.SubscriberPackageVersionId')"
+PACKAGE_VERSION="$(echo $PACKAGE | jq -r '.result.SubscriberPackageVersionId')"
 
 # Only promote master branch.
 sfdx force:package:version:promote -p "$PACKAGE_VERSION" --json --noprompt 
