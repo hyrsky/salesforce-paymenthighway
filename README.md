@@ -1,7 +1,55 @@
 [![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
 [![CircleCI](https://circleci.com/gh/hyrsky/salesforce-paymenthighway.svg?style=svg)](https://circleci.com/gh/hyrsky/salesforce-paymenthighway)
+[![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 
-# SFDX App
+# PaymentHighway API
+
+This is an implementation of the communication with the Payment Highway API using Apex. __The implementation is currently work in progress__.
+
+This code is provided as-is, use it as inspiration, reference or drop it directly into your own project and use it.
+
+For full documentation on the PaymentHighway API visit the developer website: https://paymenthighway.fi/dev/
+
+## Overview
+
+### PaymentApi
+
+In order to do safe transactions, an execution model is used where the first call to /transaction acquires a financial transaction handle, later referred as “ID”, which ensures the transaction is executed exactly once. Afterwards it is possible to execute a debit transaction by using the received id handle. If the execution fails, the command can be repeated in order to confirm the transaction with the particular id has been processed.
+
+In order to be sure that a tokenized card is valid and is able to process payment transactions the corresponding tokenization id must be used to get the actual card token.
+
+#### Initializing the Payment API
+
+```java
+String serviceUrl = 'https://v1-hub-staging.sph-test-solinor.com';
+String testKey = 'testKey';
+String testSecret = 'testSecret';
+String account = 'test';
+String merchant = 'test_merchantId';
+
+PaymentHighway paymentAPI = new PaymentHighway(serviceUrl, testKey, testSecret, account, merchant);
+```
+
+#### Init transaction
+```java
+PaymentHighway.InitTransactionResponse initResponse = paymentAPI.initTransactionHandle()
+```
+
+#### Debit with Token
+
+```java
+String token = '<token>';
+Integer amount = 1990;
+String currency = 'EUR';
+String transactionId = initResponse.getId();
+
+PaymentHighway.TransactionRequest transactionRequest = new PaymentHighway.TransactionRequest(token, String.valueOf(amount), currency);
+PaymentHighway.TransactionResponse response = paymentAPI.debitTransaction(transactionId, transactionRequest);
+
+if (response.getResult().getCode() == '100') {
+    System.debug('Closed won');
+}
+```
 
 ## Dev, Build and Test
 
