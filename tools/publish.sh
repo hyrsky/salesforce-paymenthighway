@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-PACKAGE_NAME="$1"
-VERSION="$2"
-BRANCH="$3"
-COMMITS="$4"
-TIME="$5"
+PACKAGE_NAME="$(jq '.packageDirectories[] | select(.default==true) | .package' sfdx-project.json)"
+VERSION="$1"
+BRANCH="$2"
+COMMITS="$3"
+TIME="$4"
 
 SFDX_CLI_EXEC=sfdx
 
@@ -14,20 +14,15 @@ if [ $CI ]; then
     # SFDX_CLI_EXEC=node_modules/sfdx-cli/bin/run
 fi
 
-PACKAGE=$($SFDX_CLI_EXEC force:package:version:create -p "$PACKAGE_NAME" --installationkeybypass -w 20 -a "$VERSION" -t "$VERSION" -b "$BRANCH" --json)
+PACKAGE=$($SFDX_CLI_EXEC force:package:version:create -p "$PACKAGE_NAME" --installationkeybypass -w 20 -n "$VERSION" -a "$VERSION-$BRANCH" -t "v$VERSION" -b "$BRANCH" --json)
 STATUS="$(echo $PACKAGE | jq '.status')"
 
-if [ -z $STATUS ]; then
-    exit 1
-elif [ $STATUS -gt 0 ]; then
-    echo $PACKAGE
+if [ -z "$STATUS" ] || [ "$STATUS" -gt 0 ]; then
+    echo "$PACKAGE"
     exit 1
 fi
-
-echo "$VERSION"
-echo "$PACKAGE"
 
 PACKAGE_VERSION="$(echo $PACKAGE | jq -r '.result.SubscriberPackageVersionId')"
 
 # Only promote master branch.
-sfdx force:package:version:promote -p "$PACKAGE_VERSION" --json --noprompt 
+sfdx force:package:version:promote -p "$PACKAGE_VERSION" --json --noprompt
