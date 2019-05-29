@@ -49,14 +49,14 @@
     "plugins": [
       "@semantic-release/commit-analyzer",
       "@semantic-release/release-notes-generator",
-      "@semantic-release/github",
       [
         "@semantic-release/exec",
         {
           "prepareCmd": "./tools/prepare.sh ${nextRelease.version} ${options.branch} ${commits.length} ${Date.now()}",
           "publishCmd": "./tools/publish.sh ${nextRelease.version} ${options.branch} ${commits.length} ${Date.now()}"
         }
-      ]
+      ],
+      "@semantic-release/github"
     ]
   }
 }

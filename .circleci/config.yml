@@ -50,6 +50,7 @@ jobs:
           command: |
             # mkdir ~/.ssh/ && echo -e "Host github.com\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
             npx semantic-release
+          no_output_timeout: 15m
 
 commands:
   # This command runs the preparation steps needed for the CI workflow:

@@ -10,8 +10,8 @@ SFDX_CLI_EXEC=sfdx
 
 # Defining Salesforce CLI exec, depending if it's CI or local dev machine
 if [ $CI ]; then
-    echo "Script is running on CI"
-    # SFDX_CLI_EXEC=node_modules/sfdx-cli/bin/run
+    # echo "Script is running on CI"
+    SFDX_CLI_EXEC="sfdx"
 fi
 
 PACKAGE=$($SFDX_CLI_EXEC force:package:version:create -p "$PACKAGE_NAME" --installationkeybypass -w 20 -n "$VERSION.NEXT" -a "$VERSION-$BRANCH" -t "v$VERSION" -b "$BRANCH" --json)
@@ -25,7 +25,7 @@ fi
 PACKAGE_VERSION="$(echo $PACKAGE | jq -r '.result.SubscriberPackageVersionId')"
 
 # Only promote master branch.
-RELEASE=$(sfdx force:package:version:promote -p "$PACKAGE_VERSION" --json --noprompt)
+RELEASE=$($SFDX_CLI_EXEC force:package:version:promote -p "$PACKAGE_VERSION" --json --noprompt)
 STATUS="$(echo $PACKAGE | jq '.status')"
 
 if [ -z "$STATUS" ] || [ "$STATUS" -gt 0 ]; then
