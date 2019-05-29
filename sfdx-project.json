@@ -13,6 +13,7 @@
     "sourceApiVersion": "45.0",
     "packageAliases": {
         "PaymentHighway API": "0Ho1v000000GmdDCAS",
-        "PaymentHighway API@0.1.0-1": "04t1v0000028OwqAAE"
+        "PaymentHighway API@0.1.0-1": "04t1v0000028OwqAAE",
+        "PaymentHighway API@0.1.0-4-master": "04t1v000002Guc9AAC"
     }
 }

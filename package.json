@@ -51,8 +51,8 @@
       [
         "@semantic-release/exec",
         {
-          "prepareCmd": "./tools/prepare.sh ${nextRelease.version} ${options.branch} ${commits.length} ${Date.now()}",
-          "publishCmd": "./tools/publish.sh ${nextRelease.version} ${options.branch} ${commits.length} ${Date.now()}"
+          "prepareCmd": "./tools/prepare.sh 'PaymentHighway API' ${nextRelease.version} ${options.branch} ${commits.length} ${Date.now()}",
+          "publishCmd": "./tools/publish.sh 'PaymentHighway API' ${nextRelease.version} ${options.branch} ${commits.length} ${Date.now()}"
         }
       ]
     ]
