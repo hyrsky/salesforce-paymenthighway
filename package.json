@@ -27,7 +27,9 @@
     "husky": "^2.3.0",
     "semantic-release": "^15.13.12"
   },
-  "dependencies": {},
+  "dependencies": {
+    "sfdx-cli": "^7.8.1"
+  },
   "commitlint": {
     "extends": [
       "@commitlint/config-conventional"
@@ -47,14 +49,14 @@
     "plugins": [
       "@semantic-release/commit-analyzer",
       "@semantic-release/release-notes-generator",
+      "@semantic-release/github",
       [
         "@semantic-release/exec",
         {
           "prepareCmd": "./tools/prepare.sh ${nextRelease.version} ${options.branch} ${commits.length} ${Date.now()}",
           "publishCmd": "./tools/publish.sh ${nextRelease.version} ${options.branch} ${commits.length} ${Date.now()}"
         }
-      ],
-      "@semantic-release/github"
+      ]
     ]
   }
 }

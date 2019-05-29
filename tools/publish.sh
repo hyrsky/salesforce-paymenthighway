@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-PACKAGE_NAME="$(jq '.packageDirectories[] | select(.default==true) | .package' sfdx-project.json)"
+PACKAGE_NAME="$(jq -r '.packageDirectories[] | select(.default==true) | .package' sfdx-project.json)"
 VERSION="$1"
 BRANCH="$2"
 COMMITS="$3"
@@ -14,7 +14,7 @@ if [ $CI ]; then
     # SFDX_CLI_EXEC=node_modules/sfdx-cli/bin/run
 fi
 
-PACKAGE=$($SFDX_CLI_EXEC force:package:version:create -p "$PACKAGE_NAME" --installationkeybypass -w 20 -n "$VERSION" -a "$VERSION-$BRANCH" -t "v$VERSION" -b "$BRANCH" --json)
+PACKAGE=$($SFDX_CLI_EXEC force:package:version:create -p "$PACKAGE_NAME" --installationkeybypass -w 20 -n "$VERSION.NEXT" -a "$VERSION-$BRANCH" -t "v$VERSION" -b "$BRANCH" --json)
 STATUS="$(echo $PACKAGE | jq '.status')"
 
 if [ -z "$STATUS" ] || [ "$STATUS" -gt 0 ]; then
@@ -25,4 +25,14 @@ fi
 PACKAGE_VERSION="$(echo $PACKAGE | jq -r '.result.SubscriberPackageVersionId')"
 
 # Only promote master branch.
-sfdx force:package:version:promote -p "$PACKAGE_VERSION" --json --noprompt
+RELEASE=$(sfdx force:package:version:promote -p "$PACKAGE_VERSION" --json --noprompt)
+STATUS="$(echo $PACKAGE | jq '.status')"
+
+if [ -z "$STATUS" ] || [ "$STATUS" -gt 0 ]; then
+    echo "$STATUS"
+    exit 1
+fi
+
+RELEASE_ID="$(echo $RELEASE | jq -r '.result.id')"
+
+echo "{ \"name\": \"$PACKAGE_NAME\", \"url\": \"https://login.salesforce.com/packaging/installPackage.apexp?p0=$RELEASE_ID\" }"

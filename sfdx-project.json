@@ -4,15 +4,13 @@
             "path": "force-app",
             "default": true,
             "package": "PaymentHighway API",
-            "versionNumber": "0.1.0.NEXT"
+            "versionNumber": "0.0.0.NEXT"
         }
     ],
     "namespace": "",
     "sfdcLoginUrl": "https://login.salesforce.com",
     "sourceApiVersion": "45.0",
     "packageAliases": {
-        "PaymentHighway API": "0Ho1v000000GmdDCAS",
-        "PaymentHighway API@0.1.0-1": "04t1v0000028OwqAAE",
-        "PaymentHighway API@0.1.0-4-master": "04t1v000002Guc9AAC"
+        "PaymentHighway API": "0Ho1v000000GmdDCAS"
     }
 }

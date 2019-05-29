@@ -1,0 +1,93 @@
+# Use the latest 2.1 version of CircleCI pipeline processing engine, see https://circleci.com/docs/2.0/configuration-reference/
+version: 2.1
+
+# Orchestrate or schedule a set of jobs, see https://circleci.com/docs/2.0/workflows/
+workflows:
+  build:
+    jobs:
+      - test
+      # Run the test jobs first
+      # Then the release only when all the test jobs are successful
+      - deploy:
+          filters:
+            branches:
+              only: master
+          requires:
+            - test
+
+
+executors:
+  node:
+    docker:
+      - image: circleci/node:latest
+
+jobs:
+  test:
+    executor: node
+    steps:
+      - checkout
+      - npm-install
+      - authenticate-sfdx
+      - run: 
+          name: 'run tests in scratch org'
+          command: |
+            npx sfdx force:org:create -s -f config/project-scratch-def.json -a circle_build_$CIRCLE_BUILD_NUM --durationdays=1
+            npx sfdx force:source:push -u circle_build_$CIRCLE_BUILD_NUM
+            npx sfdx force:apex:test:run -c -d /tmp/test-results -r human
+      - run: 
+          name: 'cleanup'
+          command: npx sfdx force:org:delete -u circle_build_$CIRCLE_BUILD_NUM --noprompt
+          when: always
+
+  deploy:
+    executor: node
+    steps:
+      - checkout
+      - npm-install
+      - authenticate-sfdx
+      - run:
+          name: 'semantic-release'
+          command: |
+            # mkdir ~/.ssh/ && echo -e "Host github.com\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
+            npx semantic-release
+
+commands:
+  # This command runs the preparation steps needed for the CI workflow:
+  #
+  # - Installation of the Salesforce CLI using npm
+  # - Authentication of the DevHub
+  # - Creation of a scratch org
+  #
+  # While a scratch org isn't needed in all steps it's still part of the process. The reason for this is
+  # that we need to store the sfdx configuration files for it in the workspace, so that data can be shared
+  # across different workflow steps.
+  #
+  # Keep it simple!
+  npm-install:
+    parameters:
+      prefix:
+        type: string
+        default: .
+    steps:
+      # Caching node_modules is mostly pointless since npm ci deletes that anyway.
+      - restore_cache:
+          keys:
+            - npm-{{ .Environment.CACHE_VERSION }}-{{ checksum "<< parameters.prefix >>/package-lock.json" }}
+            - npm-{{ .Environment.CACHE_VERSION }}-
+      - run: npm --prefix << parameters.prefix >> ci
+      - save_cache:
+          key: npm-{{ .Environment.CACHE_VERSION }}-{{ checksum "<< parameters.prefix >>/package-lock.json" }}
+          paths:
+             - '{{ .Environment.HOME }}/.npm'
+  authenticate-sfdx:
+    steps:
+      - run:
+          name: 'authenticate sfdx'
+          command: |
+            # Decrypt private key
+            openssl rsa -in .circleci/encrypted.key -passin "pass:$HUB_SERVER_KEY_PASSWORD" -out /tmp/plaintext.key
+            openssl rsa -in /tmp/plaintext.key -check -noout
+            # Authenticate
+            npx sfdx force:auth:jwt:grant --clientid $HUB_CONSUMER_KEY --jwtkeyfile /tmp/plaintext.key --username $HUB_SFDC_USER --setdefaultdevhubusername -a hub
+
+
