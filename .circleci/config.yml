@@ -72,11 +72,11 @@ commands:
           keys:
             - npm-{{ .Environment.CACHE_VERSION }}-{{ checksum "<< parameters.prefix >>/package-lock.json" }}
             - npm-{{ .Environment.CACHE_VERSION }}-
-      - run: npm --prefix << parameters.prefix >> install --production
+      - run: npm --prefix << parameters.prefix >> ci --prod
       - save_cache:
           key: npm-{{ .Environment.CACHE_VERSION }}-{{ checksum "<< parameters.prefix >>/package-lock.json" }}
           paths:
-            - "node_modules"
+            - "{{ .Environment.HOME }}/.npm"
   authenticate-sfdx:
     steps:
       - run:
