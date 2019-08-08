@@ -15,7 +15,6 @@ workflows:
           requires:
             - test
 
-
 executors:
   node:
     docker:
@@ -28,14 +27,14 @@ jobs:
       - checkout
       - npm-install
       - authenticate-sfdx
-      - run: 
-          name: 'run tests in scratch org'
+      - run:
+          name: "run tests in scratch org"
           command: |
             npx sfdx force:org:create -s -f config/project-scratch-def.json -a circle_build_$CIRCLE_BUILD_NUM --durationdays=1
             npx sfdx force:source:push -u circle_build_$CIRCLE_BUILD_NUM
             npx sfdx force:apex:test:run -c -d /tmp/test-results -r human
-      - run: 
-          name: 'cleanup'
+      - run:
+          name: "cleanup"
           command: npx sfdx force:org:delete -u circle_build_$CIRCLE_BUILD_NUM --noprompt
           when: always
 
@@ -46,9 +45,8 @@ jobs:
       - npm-install
       - authenticate-sfdx
       - run:
-          name: 'semantic-release'
+          name: "semantic-release"
           command: |
-            # mkdir ~/.ssh/ && echo -e "Host github.com\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
             npx semantic-release
           no_output_timeout: 15m
 
@@ -70,25 +68,22 @@ commands:
         type: string
         default: .
     steps:
-      # Caching node_modules is mostly pointless since npm ci deletes that anyway.
       - restore_cache:
           keys:
             - npm-{{ .Environment.CACHE_VERSION }}-{{ checksum "<< parameters.prefix >>/package-lock.json" }}
             - npm-{{ .Environment.CACHE_VERSION }}-
-      - run: npm --prefix << parameters.prefix >> ci
+      - run: npm --prefix << parameters.prefix >> install --production
       - save_cache:
           key: npm-{{ .Environment.CACHE_VERSION }}-{{ checksum "<< parameters.prefix >>/package-lock.json" }}
           paths:
-             - '{{ .Environment.HOME }}/.npm'
+            - "node_modules"
   authenticate-sfdx:
     steps:
       - run:
-          name: 'authenticate sfdx'
+          name: "authenticate sfdx"
           command: |
             # Decrypt private key
             openssl rsa -in .circleci/encrypted.key -passin "pass:$HUB_SERVER_KEY_PASSWORD" -out /tmp/plaintext.key
             openssl rsa -in /tmp/plaintext.key -check -noout
             # Authenticate
             npx sfdx force:auth:jwt:grant --clientid $HUB_CONSUMER_KEY --jwtkeyfile /tmp/plaintext.key --username $HUB_SFDC_USER --setdefaultdevhubusername -a hub
-
-
