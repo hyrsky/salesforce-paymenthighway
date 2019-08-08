@@ -8,27 +8,25 @@
     "commit": "git-cz",
     "semantic-release": "semantic-release"
   },
+  "author": "Santeri Hurnanen <santeri@oikeuttaelaimille.fi>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hyrsky/salesforce-paymenthighway.git"
+    "url": "https://github.com/hyrsky/salesforce-paymenthighway"
   },
-  "author": "Santeri Hurnanen <santeri@oikeuttaelaimille.fi>",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/hyrsky/salesforce-paymenthighway/issues"
-  },
-  "homepage": "https://github.com/hyrsky/salesforce-paymenthighway#readme",
   "devDependencies": {
-    "@commitlint/cli": "^7.6.1",
-    "@commitlint/config-conventional": "^7.6.0",
-    "@semantic-release/exec": "^3.3.2",
-    "commitizen": "^3.1.1",
-    "cz-conventional-changelog": "^2.1.0",
-    "husky": "^2.3.0",
-    "semantic-release": "^15.13.19"
+    "@commitlint/cli": "^8.1.0",
+    "@commitlint/config-conventional": "^8.1.0",
+    "commitizen": "^4.0.3",
+    "cz-conventional-changelog": "^3.0.2",
+    "husky": "^3.0.3"
   },
   "dependencies": {
-    "sfdx-cli": "^7.15.3"
+    "@semantic-release/exec": "^3.3.5",
+    "@semantic-release/changelog": "^3.0.4",
+    "@semantic-release/git": "^7.0.16",
+    "semantic-release": "^15.13.19",
+    "sfdx-cli": "^7.19.0"
   },
   "commitlint": {
     "extends": [
@@ -49,14 +47,17 @@
     "plugins": [
       "@semantic-release/commit-analyzer",
       "@semantic-release/release-notes-generator",
+      "@semantic-release/changelog",
       [
         "@semantic-release/exec",
         {
-          "prepareCmd": "./tools/prepare.sh ${nextRelease.version} ${options.branch} ${commits.length} ${Date.now()}",
-          "publishCmd": "./tools/publish.sh ${nextRelease.version} ${options.branch} ${commits.length} ${Date.now()}"
+          "prepareCmd": "./tools/prepare.sh ${nextRelease.version} ${options.branch}",
+          "generateNotesCmd": "./tools/notes.sh ${nextRelease.version} ${options.branch}",
+          "publishCmd": "./tools/publish.sh ${nextRelease.version} ${options.branch}"
         }
       ],
-      "@semantic-release/github"
+      "@semantic-release/github",
+      "@semantic-release/git"
     ]
   }
 }
