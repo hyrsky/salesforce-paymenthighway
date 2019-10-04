@@ -182,6 +182,19 @@ public class PaymentHighwayTest {
         System.assertEquals(response.getId(), 'a6b2755d-22eb-4a0c-92b1-69e3db388183');
     }
 
+	@isTest
+    static void testRevertTransaction() {
+        PaymentHighway paymentHighway = createPaymentAPI();
+        String body = '{"id":"a6b2755d-22eb-4a0c-92b1-69e3db388183","result":{"code":100,"message":"OK"}}';
+        PaymentHighwayMock mock = new PaymentHighwayMock(paymentHighway.getSigner(), body);
+
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        PaymentHighway.TransactionResponse response = paymentHighway.revertTransaction('my-transaction');
+
+        System.assert(mock.isCalled, 'Mock should have received connection');
+    }
+
     @isTest
     static void testDebitWithToken() {
         PaymentHighway paymentHighway = createPaymentAPI();
@@ -193,17 +206,10 @@ public class PaymentHighwayTest {
         PaymentHighwayToken token =
             new PaymentHighwayToken('7cfb9e94-9753-44a2-9081-4d07c5a9fa36');
         PaymentHighway.TransactionRequest request =
-            new PaymentHighway.TransactionRequest(token, '1990', 'EUR');
+            new PaymentHighway.TransactionRequest(token, '1990', 'EUR', 'test order');
 
-        request.setOrder('Test');
         request.setCommit(true);
         request.setCustomer(new PaymentHighwayCustomer('customer', 'GB'));
-
-        /*
-        // Check that hacks for apex reserved keywords are not present.
-        System.assert(!requestBody.contains('myCurrency'));
-        System.assert(!requestBody.contains('myCommit'));
-        */
 
         System.assertEquals(request.getCurrency(), 'EUR');
 

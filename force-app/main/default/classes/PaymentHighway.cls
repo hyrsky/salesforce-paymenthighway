@@ -4,7 +4,7 @@ public class PaymentHighway {
 
     /* Payment API headers */
     private static final String USER_AGENT = 'PaymentHighway Apex Lib';
-    private static final String SPH_API_VERSION = '20180426';
+    private static final String SPH_API_VERSION = '20190430';
 
     /**
      * EXCEPTIONS
@@ -50,9 +50,7 @@ public class PaymentHighway {
         }
     }
 
-    public abstract class TransactionResponse extends Response {}
-
-    public class DebitTransactionResponse extends TransactionResponse {
+    public virtual class TransactionResponse extends Response {
         private String filing_code;
 
         public String getFilingCode() {
@@ -60,10 +58,16 @@ public class PaymentHighway {
         }
     }
 
+    public class DebitTransactionResponse extends TransactionResponse {
+    }
+
+    public class ChargeMitResponse extends TransactionResponse {
+    }
+
     public class TokenizationResponse extends Response {
         public String type;
         public String card_token;
-        public PaymentHighwayCard card;
+        public PaymentHighwayPartialCard card;
         public PaymentHighwayCustomer customer;
         public String cardholder_authentication;
         public Boolean recurring;
@@ -76,7 +80,7 @@ public class PaymentHighway {
             return card_token;
         }
 
-        public PaymentHighwayCard getCard() {
+        public PaymentHighwayPartialCard getPartialCard() {
             return card;
         }
 
@@ -97,24 +101,78 @@ public class PaymentHighway {
      * REQUESTS
      */
 
-    public abstract class Request {}
+    public abstract class Request {
+        public abstract String getRequestBody();
+    }
 
     public class TransactionRequest extends Request {
+        /** Payment amount */
         private String amount = null;
-        // Currency is reserved word in apex.
+        /** Payment currency (NOTE: Currency is reserved word in apex!) */
         private String myCurrency = null;
+        /** Card token to charge */
         private PaymentHighwayToken token = null;
-        private PaymentHighwayCard card = null;
+        /** Card to charge (Only for PCI DSS certified parties!) */
+        //private PaymentHighwayCard card = null;
+        /** Merchant-provided order ID for the purchase. Alphanumeric with dashes and underscores. Max length 254. */
         private String order = null;
         private PaymentHighwayCustomer customer = null;
-        // Commit is reserved word in apex
-        private Boolean myCommit;
+        private Boolean myCommit; // Commit is reserved word in apex
         private PaymentHighwaySplitting splitting;
 
-        public TransactionRequest(PaymentHighwayToken token, String amount, String myCurrency) {
+
+        /**
+         * Payment using a card token when the customer is not participating in the payment flow.
+         * A contract and understanding between the merchant and the customer must be established, allowing this kind of payments.
+
+         * @param token Card token to charge
+         * @param amount Payment amount
+         * @param currency Payment currency
+         * @param order Merchant-provided order ID for the purchase. Alphanumeric with dashes and underscores. Max length 254.
+         * @return Builder
+         */
+        public TransactionRequest(PaymentHighwayToken token, String amount, String myCurrency, String order) {
             this.token = token;
             this.amount = amount;
             this.myCurrency = myCurrency;
+            this.order = order;
+        }
+
+        /**
+        * Payment with card details when the customer is participating in the payment flow. Only for PCI DSS certified parties!
+        * A contract and understanding between the merchant and the customer must be established, allowing this kind of payments.
+        * The usage of card must be specifically agreed upon. Normally use the token instead.
+        *
+        * @param card Card to charge (Only for PCI DSS certified parties!)
+        * @param amount Payment amount
+        * @param currency Payment currency
+        * @param order Merchant-provided order ID for the purchase. Alphanumeric with dashes and underscores. Max length 254.
+        */
+        // public TransactionRequest(PaymentHighwayCard card, String amount, String myCurrency, String order)
+
+        public TransactionRequest setCustomer(PaymentHighwayCustomer customer) {
+            this.customer = customer;
+            return this;
+        }
+
+        public TransactionRequest  setCommit(Boolean myCommit) {
+            this.myCommit = myCommit;
+            return this;
+        }
+
+        public TransactionRequest setSplitting(PaymentHighwaySplitting splitting) {
+            this.splitting = splitting;
+            return this;
+        }
+
+        public override String getRequestBody() {
+            String requestBody = JSON.serialize(this, true);
+
+            // Fix json keys that are apex reserved keywords.
+            requestBody = requestBody.replace('"myCurrency":', '"currency":');
+            requestBody = requestBody.replace('"myCommit":', '"commit":');
+
+            return requestBody;
         }
 
         public String getAmount() {
@@ -133,32 +191,51 @@ public class PaymentHighway {
             return order;
         }
 
-        public void setOrder(String order) {
-            this.order = order;
-        }
-
         public PaymentHighwayCustomer getCustomer() {
             return customer;
-        }
-
-        public void setCustomer(PaymentHighwayCustomer customer) {
-            this.customer = customer;
         }
 
         public Boolean getCommit() {
             return myCommit;
         }
 
-        public void setCommit(Boolean myCommit) {
-            this.myCommit = myCommit;
-        }
-
         public PaymentHighwaySplitting getSplitting() {
             return splitting;
         }
+    }
 
-        public void setSplitting(PaymentHighwaySplitting splitting) {
-            this.splitting = splitting;
+    /**
+     * Revert Transaction request
+     */
+    public class RevertTransactionRequest extends Request {
+        private String amount = null;
+        private boolean blocking = true;
+
+        /**
+        * Reverts the full amount
+        */
+        public RevertTransactionRequest() {
+        }
+
+        public override String getRequestBody() {
+            return JSON.serialize(this, true);
+        }
+
+        /**
+        * reverts specified amount
+        *
+        * @param amount Amount to revert
+        */
+        public RevertTransactionRequest(String amount) {
+            this.amount = amount;
+        }
+
+        public String getAmount() {
+            return amount;
+        }
+
+        public boolean isBlocking() {
+            return blocking;
         }
     }
 
@@ -206,38 +283,6 @@ public class PaymentHighway {
     }
 
     /**
-     * Init transaction
-     *
-     * In order to do safe transactions, an execution model is used where the first call
-     * to /transaction acquires a financial transaction handle, later referred as "ID",
-     * which ensures the transaction is executed exactly once.
-     */
-    public InitTransactionResponse initTransactionHandle() {
-        String body = executeRequest(METHOD_POST, '/transaction');
-        JSONParser parser = System.JSON.createParser(body);
-        return (InitTransactionResponse)parser.readValueAs(InitTransactionResponse.class);
-    }
-
-    /**
-     * Create a debit transaction to charge a card.
-     */
-    public DebitTransactionResponse debitTransaction(String transactionId, TransactionRequest request) {
-        String requestUri = String.format('/transaction/{0}/debit', new String[]{
-            transactionId
-         });
-
-        String requestBody = JSON.serialize(request, true);
-
-        // Fix keys that were apex reserved keywords.
-        requestBody = requestBody.replace('"myCurrency":', '"currency":');
-        requestBody = requestBody.replace('"myCommit":', '"commit":');
-
-        String response = executeRequest(METHOD_POST, requestUri, requestBody);
-        JSONParser parser = System.JSON.createParser(response);
-        return (DebitTransactionResponse)parser.readValueAs(DebitTransactionResponse.class);
-    }
-
-    /**
      * In order to be sure that a tokenized card is valid and is able to process
      * payment transactions the corresponding sph-tokenization-id must be used to
      * get the actual card token.
@@ -254,6 +299,83 @@ public class PaymentHighway {
 
         JSONParser parser = System.JSON.createParser(response);
         return (TokenizationResponse)parser.readValueAs(TokenizationResponse.class);
+    }
+
+    /**
+     * Init transaction
+     *
+     * In order to do safe transactions, an execution model is used where the first call
+     * to /transaction acquires a financial transaction handle, later referred as "ID",
+     * which ensures the transaction is executed exactly once.
+     */
+    public InitTransactionResponse initTransactionHandle() {
+        String body = executeRequest(METHOD_POST, '/transaction');
+        JSONParser parser = System.JSON.createParser(body);
+        return (InitTransactionResponse)parser.readValueAs(InitTransactionResponse.class);
+    }
+
+
+    /**
+     * When charging the customer's card in a context, where the customer is not actively
+     * participating in the transaction, you should use the chargeMerchantInitiatedTransaction
+     * method. The MIT transactions are exempt from the strong customer authentication requirements
+     * of PSD2, thus the payment cannot receive the "soft-decline" response (code 400), unlike in
+     * the case of customer initiated transactions.
+     */
+    public ChargeMitResponse chargeMerchantInitiatedTransaction(String transactionId, TransactionRequest request) {
+        String requestUri = String.format('/transaction/{0}/card/charge/merchant_initiated', new String[]{
+            transactionId
+         });
+
+        String response = executeRequest(METHOD_POST, requestUri, request.getRequestBody());
+
+        JSONParser parser = System.JSON.createParser(response);
+        return (ChargeMitResponse)parser.readValueAs(ChargeMitResponse.class);
+    }
+
+    /**
+     * Create a debit transaction to charge a card.
+     *
+     * NOTE: The debitTransaction method is deprecated since Sep 14th 2019 in favor of the new
+     * chargeCustomerInitiatedTransaction and chargeMerchantInitiatedTransaction in order to comply
+     * with the EU's PSD2 directive.
+     */
+    public DebitTransactionResponse debitTransaction(String transactionId, TransactionRequest request) {
+        String requestUri = String.format('/transaction/{0}/debit', new String[]{
+            transactionId
+        });
+
+        String response = executeRequest(METHOD_POST, requestUri, request.getRequestBody());
+        JSONParser parser = System.JSON.createParser(response);
+        return (DebitTransactionResponse)parser.readValueAs(DebitTransactionResponse.class);
+    }
+
+    /**
+     * Payment Highway Revert Full Transaction
+     *
+     * @param transactionId Transaction id
+     * @return Transaction response
+     */
+    public TransactionResponse revertTransaction(String transactionId) {
+        return this.revertTransaction(transactionId, null);
+    }
+
+    /**
+     * Payment Highway Revert Partial Transaction
+     *
+     * @param transactionId Transaction id
+     * @param amount Amount to revert
+     * @return Transaction response
+     */
+    public TransactionResponse revertTransaction(String transactionId, String amount) {
+        RevertTransactionRequest request = new RevertTransactionRequest(amount);
+        String requestUri = String.format('"/transaction/{0}/revert', new String[]{
+            transactionId
+        });
+
+        String response = executeRequest(METHOD_POST, requestUri, request.getRequestBody());
+        JSONParser parser = System.JSON.createParser(response);
+        return (TransactionResponse)parser.readValueAs(TransactionResponse.class);
     }
 
     private String getUTCTime() {
