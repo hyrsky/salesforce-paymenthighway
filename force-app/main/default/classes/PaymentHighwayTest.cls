@@ -1,38 +1,38 @@
 @isTest
 public class PaymentHighwayTest {
     // No actual calls to payment highway api is made.
-    public static final String TestServiceUrl = 'https://v1-hub-staging.sph-test-solinor.com';
+    public static final String TEST_SERVICE_URL = 'https://v1-hub-staging.sph-test-solinor.com';
 
-    public static final String TestKeyId = 'testKey';
-    public static final String TestSecret = 'testSecret';
-    public static final String TestAccount = 'test';
-    public static final String TestMerchant = 'test_merchantId';
+    public static final String TEST_KEY_ID = 'testKey';
+    public static final String TEST_SECRET = 'testSecret';
+    public static final String TEST_ACCOUNT = 'test';
+    public static final String TEST_MERCHANT = 'test_merchantId';
 
     public class PaymentHighwayMock implements HttpCalloutMock {
-        PaymentHighway.Signer signer;
+        PaymentHighwaySigner signer;
         public Integer statusCode;
         public String body;
         public Boolean isCalled = false;
 
-        public PaymentHighwayMock(PaymentHighway.Signer signer, String body, Integer statusCode) {
+        public PaymentHighwayMock(PaymentHighwaySigner signer, String body, Integer statusCode) {
             this.signer = signer;
             this.body = body;
             this.statusCode = statusCode;
         }
 
-        public PaymentHighwayMock(PaymentHighway.Signer signer, String body) {
+        public PaymentHighwayMock(PaymentHighwaySigner signer, String body) {
             this.signer = signer;
             this.body = body;
             this.statusCode = 200;
         }
 
-        public PaymentHighwayMock(PaymentHighway.Signer signer) {
+        public PaymentHighwayMock(PaymentHighwaySigner signer) {
             this.signer = signer;
             this.body = '';
             this.statusCode = 200;
         }
 
-        public PaymentHighwayMock(PaymentHighway.Signer signer, Integer statusCode) {
+        public PaymentHighwayMock(PaymentHighwaySigner signer, Integer statusCode) {
             this.signer = signer;
             this.body = '';
             this.statusCode = statusCode;
@@ -41,16 +41,16 @@ public class PaymentHighwayTest {
         /**
         * Generate paymenthighway response.
         *
-        * This code relies on PaymentHighway.Signer validity.
+        * This code relies on PaymentHighwaySigner validity.
         */
-        public HttpResponse makeResponse(PaymentHighway.Signer signer, HttpRequest request,
+        public HttpResponse makeResponse(PaymentHighwaySigner signer, HttpRequest request,
                                                 String body, Integer statusCode) {
             String requestId = request.getHeader('sph-request-id');
             if (requestId == null) {
                 requestId = 'ca6e6695-da21-45b5-99af-c1234bcaf893';
             }
 
-            String endpoint = request.getEndpoint().remove(TestServiceUrl);
+            String endpoint = request.getEndpoint().remove(TEST_SERVICE_URL);
 
             List<PaymentHighway.NameValuePair> keyValues = new List<PaymentHighway.NameValuePair>();
             keyValues.add(new PaymentHighway.NameValuePair('Content-Type', 'application/json'));
@@ -87,24 +87,24 @@ public class PaymentHighwayTest {
             res.setHeader('signature', 'SPH1 testKey bad1dea');
             res.setHeader('sph-request-id', '61e49e82-8bc0-4509-880a-2c90a206fe84');
             res.setHeader('sph-response-id', '55a1ab50-c39d-46a9-9be5-d9cfc364bc7e');
-            res.setHeader('sph-timestamp', '2018-06-22T00:53:43Z');                          
+            res.setHeader('sph-timestamp', '2018-06-22T00:53:43Z');
             res.setBody('{"id":"id","result":{"code":100,"message":"OK"}}');
             res.setStatusCode(200);
 			return res;
         }
     }
-    
+
     public static PaymentHighway createPaymentAPI() {
-       	return new PaymentHighway(TestServiceUrl, TestKeyId, TestSecret, TestAccount, TestMerchant);
+       	return new PaymentHighway(TEST_SERVICE_URL, TEST_KEY_ID, TEST_SECRET, TEST_ACCOUNT, TEST_MERCHANT);
     }
-    
+
     /**
-     * Test PaymentHighway.Signer
+     * Test PaymentHighwaySigner
      */
 
     @isTest
     static void testCreateSignature() {
-        PaymentHighway.Signer signer = new PaymentHighway.Signer(TestKeyId, TestSecret);
+        PaymentHighwaySigner signer = new PaymentHighwaySigner(TEST_KEY_ID, TEST_SECRET);
 
         List<PaymentHighway.NameValuePair> keyValues = new List<PaymentHighway.NameValuePair>{
             new PaymentHighway.NameValuePair('Content-Type', 'application/json; charset=utf-8'),
@@ -125,7 +125,7 @@ public class PaymentHighwayTest {
 
     @isTest
     static void testValidateFormRedirect() {
-        PaymentHighway.Signer signer = new PaymentHighway.Signer(TestKeyId, TestSecret);
+        PaymentHighwaySigner signer = new PaymentHighwaySigner(TEST_KEY_ID, TEST_SECRET);
 
         Map<String, String> queryParams = new Map<String, String>();
         queryParams.put('signature', 'SPH1 testKey 6137b1e32131ecf5b5ec6700a046957faf23ab534553884cd501346da8a68217');
@@ -181,7 +181,7 @@ public class PaymentHighwayTest {
         System.assertEquals(response.getResult().getMessage(), 'OK');
         System.assertEquals(response.getId(), 'a6b2755d-22eb-4a0c-92b1-69e3db388183');
     }
-    
+
     @isTest
     static void testDebitWithToken() {
         PaymentHighway paymentHighway = createPaymentAPI();
@@ -190,14 +190,14 @@ public class PaymentHighwayTest {
 
         Test.setMock(HttpCalloutMock.class, mock);
 
-        PaymentHighway.Token token = 
-            new PaymentHighway.Token('7cfb9e94-9753-44a2-9081-4d07c5a9fa36');
-        PaymentHighway.TransactionRequest request = 
+        PaymentHighwayToken token =
+            new PaymentHighwayToken('7cfb9e94-9753-44a2-9081-4d07c5a9fa36');
+        PaymentHighway.TransactionRequest request =
             new PaymentHighway.TransactionRequest(token, '1990', 'EUR');
-        
+
         request.setOrder('Test');
         request.setCommit(true);
-        request.setCustomer(new PaymentHighway.Customer('customer', 'GB'));
+        request.setCustomer(new PaymentHighwayCustomer('customer', 'GB'));
 
         /*
         // Check that hacks for apex reserved keywords are not present.
@@ -207,7 +207,7 @@ public class PaymentHighwayTest {
 
         System.assertEquals(request.getCurrency(), 'EUR');
 
-        PaymentHighway.DebitTransactionResponse response = 
+        PaymentHighway.DebitTransactionResponse response =
             paymentHighway.debitTransaction('b988b77e-ca47-46c7-a4ae-27f6b8190b6b', request);
 
         System.assert(mock.isCalled, 'Mock should have received connection');
@@ -216,7 +216,7 @@ public class PaymentHighwayTest {
         System.assertEquals(response.getResult().getMessage(), 'OK');
         System.assertEquals(response.getFilingCode(), '180622548594');
     }
-    
+
     @isTest
     static void testServerErrors() {
         PaymentHighway paymentHighway = createPaymentAPI();
