@@ -410,6 +410,8 @@ public class PaymentHighway {
 
         if (!String.isEmpty(requestBody)) {
             req.setBody(requestBody);
+        } else {
+            req.setHeader('Content-Length', '0');
         }
 
         Http http = new Http();
